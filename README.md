@@ -8,8 +8,10 @@
 
 Este serviço atua como uma camada intermediária entre seu API Gateway (Gravitee) e o Flowise, adicionando:
 
-- **Memória robusta com grafos** usando Graphiti
+- **Memória robusta com grafos de conhecimento** usando Neo4j + IA
+- **Extração inteligente de entidades e relacionamentos** via OpenAI
 - **Três tipos de memória**: usuário, sessão e empresa
+- **Busca semântica avançada** com síntese de contexto
 - **Padronização de requests/responses**
 - **Sistema de filas com Redis**
 - **Autenticação por API Key**
@@ -20,7 +22,8 @@ Este serviço atua como uma camada intermediária entre seu API Gateway (Gravite
 ```
 Frontend → Gravitee → NeuroFlow → Flowise
                             ↓
-                      Graphiti (Neo4j)
+                  🧠 IA Knowledge Engine
+                       (OpenAI + Neo4j)
                             ↓
                     PostgreSQL + Redis
 ```
@@ -69,7 +72,7 @@ Frontend → Gravitee → NeuroFlow → Flowise
    SECRET_KEY=your-super-secret-key-here
    POSTGRES_PASSWORD=your-postgres-password
    NEO4J_PASSWORD=your-neo4j-password
-   OPENAI_API_KEY=your-openai-api-key
+   OPENAI_API_KEY=your-openai-api-key  # 🔑 ESSENCIAL para IA
    FLOWISE_API_URL=http://your-flowise-url:3000
    FLOWISE_API_KEY=your-flowise-api-key
    ```
@@ -174,6 +177,43 @@ Recupera memória da sessão.
 
 Limpa memória da sessão.
 
+#### GET `/api/v1/knowledge-graph/user/{user_id}`
+
+Recupera o grafo de conhecimento do usuário com entidades e relacionamentos extraídos por IA.
+
+**Parâmetros:**
+- `user_id`: ID do usuário
+- `limit`: Número máximo de entidades/relacionamentos (padrão: 50)
+
+**Response:**
+```json
+{
+  "user_id": "user_789",
+  "entities": [
+    {
+      "name": "João Silva",
+      "type": "PERSON",
+      "description": "Usuário do sistema",
+      "attributes": {"role": "developer"},
+      "updated_at": "2024-01-01T10:00:00Z"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "João Silva",
+      "target": "Python",
+      "relationship_type": "KNOWS",
+      "description": "Tem conhecimento em Python",
+      "strength": 0.8
+    }
+  ],
+  "stats": {
+    "total_entities": 5,
+    "total_relationships": 3
+  }
+}
+```
+
 ### Endpoints Administrativos
 
 #### POST `/api/v1/admin/company/{company_id}/context`
@@ -192,14 +232,51 @@ Adiciona contexto da empresa (requer API Key de admin).
 
 Recupera contexto da empresa.
 
+## 🤖 Como a IA Funciona
+
+### Extração Inteligente de Conhecimento
+
+O **NeuroFlow** usa OpenAI GPT-4 para automaticamente extrair e estruturar conhecimento das conversas:
+
+#### 1. **Análise de Conversas**
+```
+Usuário: "Meu nome é João e trabalho como desenvolvedor Python"
+Assistente: "Olá João! Que legal, Python é uma linguagem excelente..."
+```
+
+#### 2. **Extração de Entidades**
+- 🧑 **PERSON**: "João" (usuário do sistema)
+- 💼 **SKILL**: "Python" (linguagem de programação)
+- 🏢 **ROLE**: "Desenvolvedor" (profissão)
+
+#### 3. **Criação de Relacionamentos**
+- João **WORKS_AS** Desenvolvedor
+- João **KNOWS** Python
+- Desenvolvedor **USES** Python
+
+#### 4. **Busca Semântica Inteligente**
+```
+Query: "linguagens que o usuário conhece"
+→ IA expande: ["Python", "programação", "desenvolvimento", "linguagem"]
+→ Busca entidades e relacionamentos relevantes
+→ Sintetiza contexto personalizado
+```
+
+### Vantagens da Abordagem IA
+
+✅ **Memória Contextual**: Lembra não apenas o que foi dito, mas o significado  
+✅ **Busca Inteligente**: Encontra informações relacionadas mesmo com palavras diferentes  
+✅ **Evolução Contínua**: Relacionamentos se fortalecem com mais interações  
+✅ **Síntese Automática**: Combina múltiplas memórias em contexto coerente  
+
 ## 🔧 Configuração Avançada
 
-### Configurações do Graphiti
+### Configurações de IA
 
 ```env
-GRAPHITI_LLM_MODEL=gpt-4
-GRAPHITI_EMBEDDING_MODEL=text-embedding-ada-002
-OPENAI_API_KEY=your-openai-api-key
+OPENAI_API_KEY=your-openai-api-key  # Obrigatório para extração de conhecimento
+GRAPHITI_LLM_MODEL=gpt-4o-mini      # Modelo para extração (mais econômico)
+GRAPHITI_EMBEDDING_MODEL=text-embedding-ada-002  # Para embeddings futuras
 ```
 
 ### Configurações do Celery
@@ -218,7 +295,18 @@ ACME_EMAIL=admin@your-domain.com
 
 ## 🐳 Deploy em Produção
 
-### Com Traefik (Recomendado)
+### Com Coolify (Mais Fácil) 🚀
+
+Para deploy no **Coolify**, use o template otimizado:
+
+```bash
+# Use o arquivo específico para Coolify
+docker-compose -f docker-compose.coolify-template.yml up -d
+```
+
+📖 **Guia completo**: [COOLIFY-DEPLOYMENT.md](COOLIFY-DEPLOYMENT.md)
+
+### Com Traefik (Manual)
 
 1. **Configure seu domínio no .env:**
    ```env

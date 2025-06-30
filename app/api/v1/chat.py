@@ -4,7 +4,7 @@ from app.services.memory_service import memory_service
 from app.services.flowise_service import flowise_service
 from app.core.auth import get_api_key
 from app.core.database import get_session
-from app.tasks.memory_tasks import update_memory_task
+from app.tasks.memory_tasks import update_memory_sync
 import structlog
 from datetime import datetime
 import uuid
@@ -68,8 +68,7 @@ async def chat_prediction(
             raise HTTPException(status_code=502, detail="Falha na comunicação com o Flowise")
         
         # 3. Programa atualização da memória em background
-        background_tasks.add_task(
-            update_memory_task,
+        task_id = update_memory_sync(
             user_id=request.user_id,
             session_id=request.session_id,
             company_id=request.company_id,
@@ -178,6 +177,58 @@ async def clear_session_memory(
         raise HTTPException(status_code=500, detail=f"Erro ao limpar memória da sessão: {str(e)}")
 
 
+@router.get("/knowledge-graph/user/{user_id}")
+async def get_user_knowledge_graph(
+    user_id: str,
+    limit: int = 50,
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Recupera o grafo de conhecimento do usuário (entidades e relacionamentos)
+    """
+    try:
+        async with memory_service.driver.session() as session:
+            # Busca entidades do usuário
+            entities_result = await session.run("""
+                MATCH (e:UserEntity)
+                WHERE e.user_id = $user_id
+                RETURN e.name as name, e.type as type, e.description as description,
+                       e.attributes as attributes, e.updated_at as updated_at
+                ORDER BY e.updated_at DESC
+                LIMIT $limit
+            """, user_id=user_id, limit=limit)
+            
+            entities = await entities_result.data()
+            
+            # Busca relacionamentos
+            relationships_result = await session.run("""
+                MATCH (source:UserEntity)-[r:RELATED]->(target:UserEntity)
+                WHERE source.user_id = $user_id AND target.user_id = $user_id
+                RETURN source.name as source, target.name as target,
+                       r.type as relationship_type, r.description as description,
+                       r.strength as strength, r.updated_at as updated_at
+                ORDER BY r.updated_at DESC
+                LIMIT $limit
+            """, user_id=user_id, limit=limit)
+            
+            relationships = await relationships_result.data()
+        
+        return {
+            "user_id": user_id,
+            "entities": entities,
+            "relationships": relationships,
+            "stats": {
+                "total_entities": len(entities),
+                "total_relationships": len(relationships)
+            },
+            "timestamp": datetime.now()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting knowledge graph: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao recuperar grafo de conhecimento: {str(e)}")
+
+
 @router.get("/health")
 async def health_check():
     """
@@ -187,7 +238,7 @@ async def health_check():
         # Verifica conexão com Flowise
         flowise_healthy = await flowise_service.health_check()
         
-        # Verifica conexão com Graphiti (memória)
+        # Verifica conexão com Neo4j (memória)
         memory_healthy = memory_service._initialized
         
         return {
