@@ -156,9 +156,9 @@ class MemoryServiceGraphiti:
             async with self.driver.session() as session:
                 entity_query = """
                 MATCH (p:Person {userID: $user_id})-[*1..2]-(related)
-                WHERE toLower(toString(related)) CONTAINS toLower($search_term)
-                   OR toLower(related.name) CONTAINS toLower($search_term)
+                WHERE toLower(related.name) CONTAINS toLower($search_term)
                    OR toLower(related.description) CONTAINS toLower($search_term)
+                   OR toLower(related.type) CONTAINS toLower($search_term)
                 RETURN DISTINCT related.name as name, 
                        related.type as type,
                        related.description as description,
@@ -293,6 +293,49 @@ class MemoryServiceGraphiti:
             logger.error(f"Failed to add session memory: {e}")
             return False
     
+    async def get_session_context(self, session_id: str, query: str, limit: int = 5) -> Optional[str]:
+        """Recupera contexto da sessão"""
+        await self.ensure_initialized()
+        
+        try:
+            async with self.driver.session() as session:
+                memory_query = """
+                MATCH (m:SessionMemory {session_id: $session_id})
+                WHERE toLower(m.question) CONTAINS toLower($search_term)
+                   OR toLower(m.answer) CONTAINS toLower($search_term)
+                RETURN m.question as question, m.answer as answer, m.timestamp as timestamp
+                ORDER BY m.timestamp DESC
+                LIMIT $limit
+                """
+                
+                result = await session.run(memory_query,
+                    session_id=session_id,
+                    search_term=query,
+                    limit=limit
+                )
+                
+                memories = []
+                async for record in result:
+                    memories.append({
+                        "question": record["question"],
+                        "answer": record["answer"],
+                        "timestamp": record["timestamp"]
+                    })
+                
+                if memories:
+                    context_parts = ["## Conversas da Sessão:"]
+                    for memory in memories:
+                        context_parts.append(f"P: {memory['question']}")
+                        context_parts.append(f"R: {memory['answer']}")
+                        context_parts.append("---")
+                    return "\n".join(context_parts)
+                
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to get session context: {e}")
+            return None
+
     async def add_company_memory(self, company_id: str, context: str, description: str):
         """Adiciona memória da empresa"""
         await self.ensure_initialized()

@@ -8,7 +8,8 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.api.v1 import chat, admin
 from app.core.database import init_database, close_database
-from app.services.memory_service import memory_service
+from app.services.memory_service_graphiti import memory_service_graphiti as memory_service
+from app.core.neo4j_init import initialize_neo4j_schema
 
 
 # Configuração do logging
@@ -45,6 +46,10 @@ async def lifespan(app: FastAPI):
         # Inicializa o banco de dados
         await init_database()
         logger.info("Database initialized")
+        
+        # Inicializa schema do Neo4j automaticamente
+        await initialize_neo4j_schema()
+        logger.info("Neo4j schema initialized")
         
         # Inicializa o serviço de memória
         await memory_service.initialize()
