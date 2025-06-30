@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from app.models.schemas import ChatRequest, ChatResponse, MemoryContext
-from app.services.memory_service import memory_service
+from app.services.memory_service_graphiti import memory_service_graphiti as memory_service
 from app.services.flowise_service import flowise_service
 from app.core.auth import get_api_key
 from app.core.database import get_session
@@ -141,6 +141,36 @@ async def get_user_memory(
     except Exception as e:
         logger.error(f"Error getting user memory: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao recuperar memória do usuário: {str(e)}")
+
+
+@router.get("/graph/query/{user_id}")
+async def query_knowledge_graph(
+    user_id: str,
+    question: str,
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Consulta direta ao grafo de conhecimento usando linguagem natural
+    """
+    try:
+        result = await memory_service.query_graph(
+            user_id=user_id,
+            question=question
+        )
+        
+        if not result:
+            return {
+                "user_id": user_id,
+                "question": question,
+                "message": "Nenhum resultado encontrado ou query não pode ser gerada",
+                "timestamp": datetime.now()
+            }
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error querying knowledge graph: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao consultar grafo: {str(e)}")
 
 
 @router.get("/memory/session/{session_id}")
