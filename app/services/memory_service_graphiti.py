@@ -336,6 +336,47 @@ class MemoryServiceGraphiti:
             logger.error(f"Failed to get session context: {e}")
             return None
 
+    async def get_company_context(self, company_id: str, query: str, limit: int = 5) -> Optional[str]:
+        """Recupera contexto da empresa"""
+        await self.ensure_initialized()
+        
+        try:
+            async with self.driver.session() as session:
+                memory_query = """
+                MATCH (m:CompanyMemory {company_id: $company_id})
+                WHERE toLower(m.context) CONTAINS toLower($search_term)
+                   OR toLower(m.description) CONTAINS toLower($search_term)
+                RETURN m.context as context, m.description as description, m.timestamp as timestamp
+                ORDER BY m.timestamp DESC
+                LIMIT $limit
+                """
+                
+                result = await session.run(memory_query,
+                    company_id=company_id,
+                    search_term=query,
+                    limit=limit
+                )
+                
+                memories = []
+                async for record in result:
+                    memories.append({
+                        "context": record["context"],
+                        "description": record["description"],
+                        "timestamp": record["timestamp"]
+                    })
+                
+                if memories:
+                    context_parts = ["## Contexto da Empresa:"]
+                    for memory in memories:
+                        context_parts.append(f"- {memory['description']}: {memory['context']}")
+                    return "\n".join(context_parts)
+                
+                return None
+                
+        except Exception as e:
+            logger.error(f"Failed to get company context: {e}")
+            return None
+
     async def add_company_memory(self, company_id: str, context: str, description: str):
         """Adiciona memória da empresa"""
         await self.ensure_initialized()
