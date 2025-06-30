@@ -69,13 +69,18 @@ async def chat_prediction(
             raise HTTPException(status_code=502, detail="Falha na comunicação com o Flowise")
         
         # 3. Programa atualização da memória em background
-        task_id = update_memory_sync(
-            user_id=request.user_id,
-            session_id=request.session_id,
-            company_id=request.company_id,
-            question=request.question,
-            answer=flowise_response.text
-        )
+        try:
+            task_id = update_memory_sync(
+                user_id=request.user_id,
+                session_id=request.session_id,
+                company_id=request.company_id,
+                question=request.question,
+                answer=flowise_response.text
+            )
+            logger.info(f"Memory update task queued: {task_id}")
+        except Exception as e:
+            logger.error(f"Failed to queue memory update: {e}")
+            # Não falha a response, mas loga o erro
         
         # 4. Prepara resposta padronizada
         response = ChatResponse(
@@ -228,6 +233,37 @@ async def get_user_knowledge_graph(
     except Exception as e:
         logger.error(f"Error getting knowledge graph: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao recuperar grafo de conhecimento: {str(e)}")
+
+
+@router.post("/debug/test-memory")
+async def test_memory_direct(
+    request: ChatRequest,
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Endpoint de debug para testar memória diretamente (sem Celery)
+    """
+    try:
+        logger.info(f"🧪 Testing memory directly for user {request.user_id}")
+        
+        # Testa memória diretamente sem background task
+        success = await memory_service.add_user_memory(
+            user_id=request.user_id,
+            question=request.question,
+            answer="Resposta de teste para debug",
+            context={"debug": True, "company_id": request.company_id}
+        )
+        
+        return {
+            "success": success,
+            "message": "Teste de memória executado",
+            "user_id": request.user_id,
+            "timestamp": datetime.now()
+        }
+        
+    except Exception as e:
+        logger.error(f"Debug test failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro no teste: {str(e)}")
 
 
 @router.get("/health")

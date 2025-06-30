@@ -75,6 +75,8 @@ class MemoryService:
         """Adiciona memória persistente do usuário com extração de conhecimento por IA"""
         await self.ensure_initialized()
         
+        logger.info(f"🧠 Starting memory addition for user {user_id}")
+        
         try:
             # 1. Extrai conhecimento usando IA
             knowledge = await ai_knowledge_service.extract_knowledge(
@@ -310,9 +312,9 @@ class MemoryService:
             text_query = """
             MATCH (m:UserMemory)
             WHERE m.user_id = $user_id
-            AND (toLower(m.question) CONTAINS toLower($query) 
-                 OR toLower(m.answer) CONTAINS toLower($query)
-                 OR toLower(m.summary) CONTAINS toLower($query))
+            AND (toLower(m.question) CONTAINS toLower($search_query) 
+                 OR toLower(m.answer) CONTAINS toLower($search_query)
+                 OR toLower(m.summary) CONTAINS toLower($search_query))
             RETURN m.question as question, m.answer as answer, 
                    m.summary as summary, m.timestamp as timestamp,
                    null as entity_name, null as entity_type
@@ -324,7 +326,7 @@ class MemoryService:
                 result = await session.run(
                     text_query,
                     user_id=user_id,
-                    query=query,
+                    search_query=query,
                     limit=limit
                 )
                 text_memories = await result.data()
@@ -379,8 +381,8 @@ class MemoryService:
             search_query = """
             MATCH (m:SessionMemory)
             WHERE m.session_id = $session_id
-            AND (toLower(m.question) CONTAINS toLower($query) 
-                 OR toLower(m.answer) CONTAINS toLower($query))
+            AND (toLower(m.question) CONTAINS toLower($search_query) 
+                 OR toLower(m.answer) CONTAINS toLower($search_query))
             RETURN m.question as question, m.answer as answer, m.timestamp as timestamp
             ORDER BY m.timestamp DESC
             LIMIT $limit
@@ -390,7 +392,7 @@ class MemoryService:
                 result = await session.run(
                     search_query,
                     session_id=session_id,
-                    query=query,
+                    search_query=query,
                     limit=limit
                 )
                 
