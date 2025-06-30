@@ -6,7 +6,6 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from neo4j import AsyncGraphDatabase
 from app.config import settings
-from app.services.ai_knowledge_service import ai_knowledge_service
 
 logger = structlog.get_logger()
 
@@ -57,6 +56,7 @@ class MemoryServiceGraphiti:
             current_date = datetime.now().isoformat()
             
             # 1. Gera queries Cypher estruturadas usando abordagem Graphiti
+            from app.services.ai_knowledge_service import ai_knowledge_service
             cypher_queries = await ai_knowledge_service.generate_cypher_for_interaction(
                 question=question,
                 answer=answer,
@@ -93,6 +93,7 @@ class MemoryServiceGraphiti:
         """Adiciona memória básica para recuperação"""
         try:
             # Gera embedding da pergunta para busca semântica
+            from app.services.ai_knowledge_service import ai_knowledge_service
             embedding = await ai_knowledge_service.generate_query_embedding(question)
             
             memory_id = str(uuid.uuid4())
@@ -129,6 +130,7 @@ class MemoryServiceGraphiti:
         
         try:
             # 1. Tenta gerar uma query Cypher específica para a pergunta
+            from app.services.ai_knowledge_service import ai_knowledge_service
             cypher_query = await ai_knowledge_service.generate_query_cypher(query, user_id)
             
             context_parts = []
@@ -234,6 +236,7 @@ class MemoryServiceGraphiti:
         
         try:
             # Gera query Cypher específica
+            from app.services.ai_knowledge_service import ai_knowledge_service
             cypher_query = await ai_knowledge_service.generate_query_cypher(question, user_id)
             
             if not cypher_query:
@@ -336,26 +339,39 @@ class MemoryServiceGraphiti:
             logger.error(f"Failed to get session context: {e}")
             return None
 
-    async def get_company_context(self, company_id: str, query: str, limit: int = 5) -> Optional[str]:
+    async def get_company_context(self, company_id: str, query: str = "", limit: int = 5) -> Optional[str]:
         """Recupera contexto da empresa"""
         await self.ensure_initialized()
         
         try:
             async with self.driver.session() as session:
-                memory_query = """
-                MATCH (m:CompanyMemory {company_id: $company_id})
-                WHERE toLower(m.context) CONTAINS toLower($search_term)
-                   OR toLower(m.description) CONTAINS toLower($search_term)
-                RETURN m.context as context, m.description as description, m.timestamp as timestamp
-                ORDER BY m.timestamp DESC
-                LIMIT $limit
-                """
-                
-                result = await session.run(memory_query,
-                    company_id=company_id,
-                    search_term=query,
-                    limit=limit
-                )
+                if query:
+                    # Query específica
+                    memory_query = """
+                    MATCH (m:CompanyMemory {company_id: $company_id})
+                    WHERE toLower(m.context) CONTAINS toLower($search_term)
+                       OR toLower(m.description) CONTAINS toLower($search_term)
+                    RETURN m.context as context, m.description as description, m.timestamp as timestamp
+                    ORDER BY m.timestamp DESC
+                    LIMIT $limit
+                    """
+                    result = await session.run(memory_query,
+                        company_id=company_id,
+                        search_term=query,
+                        limit=limit
+                    )
+                else:
+                    # Retorna todos os contextos da empresa
+                    memory_query = """
+                    MATCH (m:CompanyMemory {company_id: $company_id})
+                    RETURN m.context as context, m.description as description, m.timestamp as timestamp
+                    ORDER BY m.timestamp DESC
+                    LIMIT $limit
+                    """
+                    result = await session.run(memory_query,
+                        company_id=company_id,
+                        limit=limit
+                    )
                 
                 memories = []
                 async for record in result:
