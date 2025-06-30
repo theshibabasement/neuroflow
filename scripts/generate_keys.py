@@ -123,6 +123,7 @@ NEO4J_PASSWORD=change-this-password
 # Configurações do Flowise
 FLOWISE_API_URL=http://localhost:3000
 FLOWISE_API_KEY=your-flowise-api-key
+FLOWISE_CHATFLOW_ID=your-chatflow-id-here
 
 # Configurações do Graphiti
 GRAPHITI_LLM_MODEL=gpt-4

@@ -61,7 +61,8 @@ async def chat_prediction(
             user_id=request.user_id,
             company_id=request.company_id,
             memory_context=memory_context,
-            additional_context=request.additional_context
+            additional_context=request.additional_context,
+            chatflow_id=request.chatflow_id
         )
         
         if not flowise_response:

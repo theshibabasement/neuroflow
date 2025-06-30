@@ -16,3 +16,4 @@ structlog==25.4.0
 pydantic-settings==2.7.0
 openai==1.58.1
 tiktoken==0.8.0
+numpy==2.2.0

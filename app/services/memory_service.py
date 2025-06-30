@@ -84,12 +84,19 @@ class MemoryService:
                 context=context
             )
             
-            # 2. Salva a memória básica
+            # 2. Gera embedding da memória
+            embedding = await ai_knowledge_service.generate_memory_embedding(
+                question=question,
+                answer=answer,
+                summary=knowledge.summary
+            )
+            
+            # 3. Salva a memória básica
             memory_id = str(uuid.uuid4())
             timestamp = datetime.now().isoformat()
             
             async with self.driver.session() as session:
-                # Salva a conversa original
+                # Salva a conversa original com embedding
                 await session.run("""
                     CREATE (m:UserMemory:Memory {
                         id: $memory_id,
@@ -98,6 +105,7 @@ class MemoryService:
                         answer: $answer,
                         context: $context,
                         summary: $summary,
+                        embedding: $embedding,
                         timestamp: $timestamp
                     })
                 """, 
@@ -107,6 +115,7 @@ class MemoryService:
                     answer=answer,
                     context=json.dumps(context) if context else None,
                     summary=knowledge.summary,
+                    embedding=embedding,
                     timestamp=timestamp
                 )
                 
@@ -229,10 +238,49 @@ class MemoryService:
         await self.ensure_initialized()
         
         try:
-            # 1. Gera termos de busca semântica usando IA
+            # 1. Gera embedding da query para busca semântica
+            query_embedding = await ai_knowledge_service.generate_query_embedding(query)
+            
+            # 2. Busca por similaridade de embeddings (se disponível)
+            vector_memories = []
+            if query_embedding:
+                vector_query = """
+                MATCH (m:UserMemory)
+                WHERE m.user_id = $user_id AND m.embedding IS NOT NULL
+                RETURN m.question as question, m.answer as answer, 
+                       m.summary as summary, m.timestamp as timestamp,
+                       m.embedding as embedding,
+                       null as entity_name, null as entity_type
+                ORDER BY m.timestamp DESC
+                LIMIT $limit_extended
+                """
+                
+                async with self.driver.session() as session:
+                    result = await session.run(
+                        vector_query,
+                        user_id=user_id,
+                        limit_extended=limit * 3  # Busca mais para ranquear
+                    )
+                    records = await result.data()
+                
+                # Calcula similaridades e ranqueia
+                for record in records:
+                    if record['embedding']:
+                        similarity = ai_knowledge_service.calculate_cosine_similarity(
+                            query_embedding, record['embedding']
+                        )
+                        if similarity > 0.7:  # Threshold de similaridade
+                            record['similarity_score'] = similarity
+                            vector_memories.append(record)
+                
+                # Ordena por similaridade
+                vector_memories.sort(key=lambda x: x.get('similarity_score', 0), reverse=True)
+                vector_memories = vector_memories[:limit]
+            
+            # 3. Gera termos de busca semântica usando IA
             search_terms = await ai_knowledge_service.generate_contextual_search(query, "user")
             
-            # 2. Busca por entidades relacionadas
+            # 4. Busca por entidades relacionadas
             entity_memories = []
             for term in search_terms[:3]:  # Limita a 3 termos principais
                 entity_query = """
@@ -258,7 +306,7 @@ class MemoryService:
                     records = await result.data()
                     entity_memories.extend(records)
             
-            # 3. Busca textual tradicional como fallback
+            # 5. Busca textual tradicional como fallback
             text_query = """
             MATCH (m:UserMemory)
             WHERE m.user_id = $user_id
@@ -281,8 +329,8 @@ class MemoryService:
                 )
                 text_memories = await result.data()
             
-            # 4. Combina e deduplica resultados
-            all_memories = entity_memories + text_memories
+            # 6. Combina e deduplica resultados (prioriza busca vetorial)
+            all_memories = vector_memories + entity_memories + text_memories
             seen_ids = set()
             unique_memories = []
             
@@ -299,7 +347,7 @@ class MemoryService:
             if not unique_memories:
                 return None
             
-            # 5. Sintetiza contexto usando IA
+            # 7. Sintetiza contexto usando IA
             context = await ai_knowledge_service.synthesize_context(
                 memories=unique_memories,
                 query=query,

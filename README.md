@@ -75,11 +75,30 @@ Frontend → Gravitee → NeuroFlow → Flowise
    OPENAI_API_KEY=your-openai-api-key  # 🔑 ESSENCIAL para IA
    FLOWISE_API_URL=http://your-flowise-url:3000
    FLOWISE_API_KEY=your-flowise-api-key
+   FLOWISE_CHATFLOW_ID=your-chatflow-id  # 🔑 ID do seu chatflow
    ```
 
 4. **Execute com Docker Compose:**
    ```bash
    docker-compose up -d
+   ```
+
+### 🤖 Como obter o Chatflow ID do Flowise
+
+**O Chatflow ID é obrigatório** para o NeuroFlow funcionar:
+
+1. **Acesse seu Flowise Dashboard**
+2. **Vá para "Chatflows"** 
+3. **Abra o chatflow** que deseja usar
+4. **Copie o ID da URL**:
+   ```
+   https://seu-flowise.com/chatflow/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                                   ↑ Este é o Chatflow ID
+   ```
+
+5. **Configure no .env**:
+   ```env
+   FLOWISE_CHATFLOW_ID=a1b2c3d4-e5f6-7890-abcd-ef1234567890
    ```
 
 ### Desenvolvimento Local
@@ -257,17 +276,26 @@ Assistente: "Olá João! Que legal, Python é uma linguagem excelente..."
 #### 4. **Busca Semântica Inteligente**
 ```
 Query: "linguagens que o usuário conhece"
+→ Gera embedding vetorial da query
+→ Busca por similaridade semântica (cosseno)
 → IA expande: ["Python", "programação", "desenvolvimento", "linguagem"]
-→ Busca entidades e relacionamentos relevantes
+→ Busca entidades e relacionamentos relevantes  
 → Sintetiza contexto personalizado
 ```
+
+#### 5. **Busca Vetorial + Textual**
+- 🎯 **Embeddings**: `text-embedding-3-small` para busca semântica
+- 🔍 **Similaridade**: Cosseno > 0.7 para relevância
+- 📊 **Ranking**: Combina busca vetorial + textual + entidades
 
 ### Vantagens da Abordagem IA
 
 ✅ **Memória Contextual**: Lembra não apenas o que foi dito, mas o significado  
 ✅ **Busca Inteligente**: Encontra informações relacionadas mesmo com palavras diferentes  
+✅ **Busca Vetorial**: Similaridade semântica com embeddings OpenAI  
 ✅ **Evolução Contínua**: Relacionamentos se fortalecem com mais interações  
 ✅ **Síntese Automática**: Combina múltiplas memórias em contexto coerente  
+✅ **Ranking Inteligente**: Prioriza resultados mais relevantes semanticamente  
 
 ## 🔧 Configuração Avançada
 

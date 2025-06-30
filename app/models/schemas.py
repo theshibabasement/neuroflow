@@ -11,6 +11,7 @@ class ChatRequest(BaseModel):
     user_id: str = Field(..., description="ID do usuário")
     company_id: str = Field(..., description="ID da empresa")
     additional_context: Optional[Dict[str, Any]] = Field(default=None, description="Contexto adicional")
+    chatflow_id: Optional[str] = Field(default=None, description="ID do chatflow específico (opcional)")
 
 
 class ChatResponse(BaseModel):

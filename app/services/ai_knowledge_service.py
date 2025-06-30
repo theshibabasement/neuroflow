@@ -1,6 +1,7 @@
 import openai
 import structlog
 import json
+import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
 from pydantic import BaseModel
 from app.config import settings
@@ -39,6 +40,7 @@ class AIKnowledgeService:
     def __init__(self):
         self.client = openai.AsyncOpenAI(api_key=settings.openai_api_key)
         self.model = "gpt-4o-mini"  # Modelo mais econômico para extração
+        self.embedding_model = "text-embedding-3-small"  # Modelo de embeddings
     
     async def extract_knowledge(
         self, 
@@ -255,6 +257,70 @@ Responda apenas com o contexto sintetizado, sem explicações adicionais."""
             if memories:
                 return f"Contexto relacionado à query '{query}' encontrado."
             return ""
+
+    async def generate_embedding(self, text: str) -> Optional[List[float]]:
+        """
+        Gera embedding vetorial para um texto
+        """
+        try:
+            # Limita o texto para evitar erro de tamanho
+            max_length = 8000  # Limite seguro para embeddings
+            if len(text) > max_length:
+                text = text[:max_length] + "..."
+            
+            response = await self.client.embeddings.create(
+                model=self.embedding_model,
+                input=text,
+                encoding_format="float"
+            )
+            
+            embedding = response.data[0].embedding
+            logger.debug(f"Generated embedding with {len(embedding)} dimensions")
+            return embedding
+            
+        except Exception as e:
+            logger.error(f"Failed to generate embedding: {e}")
+            return None
+
+    async def generate_query_embedding(self, query: str) -> Optional[List[float]]:
+        """
+        Gera embedding para uma query de busca
+        """
+        return await self.generate_embedding(query)
+
+    async def generate_memory_embedding(self, question: str, answer: str, summary: str = "") -> Optional[List[float]]:
+        """
+        Gera embedding para uma memória (combina pergunta, resposta e resumo)
+        """
+        # Combina os textos em um formato estruturado
+        memory_text = f"Pergunta: {question}\nResposta: {answer}"
+        if summary:
+            memory_text += f"\nResumo: {summary}"
+        
+        return await self.generate_embedding(memory_text)
+
+    def calculate_cosine_similarity(self, embedding1: List[float], embedding2: List[float]) -> float:
+        """
+        Calcula similaridade de cosseno entre dois embeddings
+        """
+        try:
+            vec1 = np.array(embedding1)
+            vec2 = np.array(embedding2)
+            
+            # Calcula similaridade de cosseno
+            dot_product = np.dot(vec1, vec2)
+            norm1 = np.linalg.norm(vec1)
+            norm2 = np.linalg.norm(vec2)
+            
+            if norm1 == 0 or norm2 == 0:
+                return 0.0
+            
+            similarity = dot_product / (norm1 * norm2)
+            return float(similarity)
+            
+        except Exception as e:
+            logger.error(f"Failed to calculate similarity: {e}")
+            return 0.0
 
 
 # Instância global do serviço

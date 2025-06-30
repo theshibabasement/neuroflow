@@ -42,6 +42,7 @@ OPENAI_API_KEY=sk-sua-openai-api-key
 # Flowise
 FLOWISE_API_URL=https://seu-flowise-url.com
 FLOWISE_API_KEY=sua-flowise-api-key
+FLOWISE_CHATFLOW_ID=seu-chatflow-id-do-flowise
 
 # Opcional
 DEBUG=false
@@ -63,6 +64,37 @@ PORT=8000
 4. **Configure as variáveis de ambiente** (listadas acima)
 
 5. **Deploy!** 🚀
+
+## 🤖 Configuração do Flowise
+
+### Como obter o Chatflow ID
+
+O **Chatflow ID** é essencial para o NeuroFlow se comunicar com o Flowise:
+
+#### 1. **No Flowise Dashboard**
+1. Acesse seu Flowise: `https://seu-flowise.com`
+2. Vá para **"Chatflows"**
+3. Selecione ou crie o chatflow que deseja usar
+4. O **Chatflow ID** aparece na URL: 
+   ```
+   https://seu-flowise.com/chatflow/a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                                 ↑ Este é o Chatflow ID
+   ```
+
+#### 2. **Via API** (alternativo)
+```bash
+curl -X GET "https://seu-flowise.com/api/v1/chatflows" \
+  -H "Authorization: Bearer sua-api-key"
+```
+
+#### 3. **Exemplo de configuração**
+```env
+FLOWISE_API_URL=https://seu-flowise.com
+FLOWISE_API_KEY=flowise_abc123def456
+FLOWISE_CHATFLOW_ID=a1b2c3d4-e5f6-7890-abcd-ef1234567890
+```
+
+⚠️ **Importante**: Cada chatflow tem um ID único. Use o ID do chatflow que contém sua lógica de conversação.
 
 ## 🗄️ Configuração do Neo4j
 

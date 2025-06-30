@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     # Configurações do Flowise
     flowise_api_url: str = config("FLOWISE_API_URL", default="http://localhost:3000")
     flowise_api_key: Optional[str] = config("FLOWISE_API_KEY", default=None)
+    flowise_chatflow_id: str = config("FLOWISE_CHATFLOW_ID")
     
     # Configurações do Graphiti
     graphiti_llm_model: str = config("GRAPHITI_LLM_MODEL", default="gpt-4")

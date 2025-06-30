@@ -87,10 +87,8 @@ class FlowiseService:
             if chatflow_id:
                 url = f"{self.base_url}/api/v1/prediction/{chatflow_id}"
             else:
-                # Usa um chatflow padrão se não especificado
-                # Isso deve ser configurado nas variáveis de ambiente
-                default_chatflow = settings.flowise_default_chatflow if hasattr(settings, 'flowise_default_chatflow') else "default"
-                url = f"{self.base_url}/api/v1/prediction/{default_chatflow}"
+                # Usa o chatflow configurado nas variáveis de ambiente
+                url = f"{self.base_url}/api/v1/prediction/{settings.flowise_chatflow_id}"
             
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 logger.info(f"Sending prediction to Flowise: {url}")
