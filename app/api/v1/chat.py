@@ -235,6 +235,99 @@ async def get_user_knowledge_graph(
         raise HTTPException(status_code=500, detail=f"Erro ao recuperar grafo de conhecimento: {str(e)}")
 
 
+@router.get("/debug/neo4j-test")
+async def test_neo4j_connection(api_key: str = Depends(get_api_key)):
+    """
+    Testa conexão e inicialização do Neo4j
+    """
+    try:
+        await memory_service.ensure_initialized()
+        
+        # Testa conexão básica
+        async with memory_service.driver.session() as session:
+            # Conta nós existentes
+            result = await session.run("MATCH (n) RETURN count(n) as total")
+            record = await result.single()
+            node_count = record["total"]
+            
+            # Lista labels existentes
+            result = await session.run("CALL db.labels()")
+            labels = [record["label"] async for record in result]
+            
+            # Lista tipos de relacionamento
+            result = await session.run("CALL db.relationshipTypes()")
+            relationships = [record["relationshipType"] async for record in result]
+            
+            return {
+                "neo4j_connected": True,
+                "total_nodes": node_count,
+                "existing_labels": labels,
+                "existing_relationships": relationships,
+                "is_empty": node_count == 0,
+                "timestamp": datetime.now()
+            }
+            
+    except Exception as e:
+        logger.error(f"Neo4j connection test failed: {e}")
+        return {
+            "neo4j_connected": False,
+            "error": str(e),
+            "timestamp": datetime.now()
+        }
+
+
+@router.post("/debug/create-test-data")
+async def create_test_data(api_key: str = Depends(get_api_key)):
+    """
+    Cria dados de teste no Neo4j para verificar se tudo funciona
+    """
+    try:
+        await memory_service.ensure_initialized()
+        
+        # Cria dados de teste diretamente
+        async with memory_service.driver.session() as session:
+            # Cria um nó de teste
+            await session.run("""
+                CREATE (m:UserMemory:Memory {
+                    id: 'test_memory_001',
+                    user_id: 'test_user_001',
+                    question: 'Qual é o meu nome?',
+                    answer: 'Seu nome é João Silva.',
+                    summary: 'Usuário perguntou sobre seu nome',
+                    timestamp: datetime()
+                })
+            """)
+            
+            # Cria uma entidade de teste
+            await session.run("""
+                CREATE (e:UserEntity:Entity {
+                    id: 'test_entity_001',
+                    user_id: 'test_user_001',
+                    name: 'João Silva',
+                    type: 'PERSON',
+                    description: 'Usuário do sistema',
+                    created_at: datetime(),
+                    updated_at: datetime()
+                })
+            """)
+            
+            # Verifica se criou
+            result = await session.run("MATCH (n) RETURN count(n) as total")
+            record = await result.single()
+            total_nodes = record["total"]
+            
+            return {
+                "success": True,
+                "message": "Dados de teste criados",
+                "total_nodes_after": total_nodes,
+                "timestamp": datetime.now()
+            }
+            
+    except Exception as e:
+        logger.error(f"Failed to create test data: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao criar dados de teste: {str(e)}")
+
+
 @router.post("/debug/test-memory")
 async def test_memory_direct(
     request: ChatRequest,
