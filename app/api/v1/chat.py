@@ -402,6 +402,33 @@ async def test_memory_direct(
         raise HTTPException(status_code=500, detail=f"Erro no teste: {str(e)}")
 
 
+@router.post("/debug/clear-memory")
+async def clear_neo4j_memory(api_key: str = Depends(get_api_key)):
+    """Limpa toda a memória do Neo4j"""
+    try:
+        await memory_service.ensure_initialized()
+        
+        async with memory_service.driver.session() as session:
+            # Deleta todos os nós e relacionamentos
+            result = await session.run("MATCH (n) DETACH DELETE n")
+            
+            # Verifica se foi limpo
+            count_result = await session.run("MATCH (n) RETURN count(n) as total")
+            record = await count_result.single()
+            total_nodes = record["total"] if record else 0
+        
+        return {
+            "success": True,
+            "message": "Memória Neo4j completamente limpa",
+            "remaining_nodes": total_nodes,
+            "timestamp": datetime.now()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error clearing Neo4j memory: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao limpar memória: {str(e)}")
+
+
 @router.post("/debug/init-schema")
 async def init_neo4j_schema(api_key: str = Depends(get_api_key)):
     """Inicializa schema completo do Neo4j"""

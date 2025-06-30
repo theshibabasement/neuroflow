@@ -26,9 +26,8 @@ class MemoryServiceGraphiti:
     async def initialize(self):
         """Inicializa conexão com Neo4j"""
         try:
-            uri = f"bolt://{settings.neo4j_host}:{settings.neo4j_port}"
             self.driver = AsyncGraphDatabase.driver(
-                uri,
+                settings.neo4j_uri,
                 auth=(settings.neo4j_user, settings.neo4j_password)
             )
             
@@ -38,7 +37,7 @@ class MemoryServiceGraphiti:
                 await result.single()
             
             self._initialized = True
-            logger.info(f"Neo4j connection initialized: {uri}")
+            logger.info(f"Neo4j connection initialized: {settings.neo4j_uri}")
             
         except Exception as e:
             logger.error(f"Failed to initialize Neo4j connection: {e}")
