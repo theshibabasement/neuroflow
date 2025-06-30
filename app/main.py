@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     Gerencia o ciclo de vida da aplicação
     """
     # Startup
-    logger.info("Starting AI Memory Service")
+    logger.info("Starting NeuroFlow - AI Memory Service")
     
     try:
         # Inicializa o banco de dados
@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
         
     finally:
         # Shutdown
-        logger.info("Shutting down AI Memory Service")
+        logger.info("Shutting down NeuroFlow")
         await close_database()
         logger.info("Database connection closed")
 
@@ -63,7 +63,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="Microserviço intermediário entre API Gateway e Flowise com memória robusta usando Graphiti",
+    description="🧠 NeuroFlow - Microserviço inteligente com memória de grafos para potencializar agentes de IA",
     docs_url="/docs" if settings.debug else None,
     redoc_url="/redoc" if settings.debug else None,
     lifespan=lifespan

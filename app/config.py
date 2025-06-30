@@ -5,7 +5,7 @@ from typing import Optional
 
 class Settings(BaseSettings):
     # Configurações da aplicação
-    app_name: str = config("APP_NAME", default="AI Memory Service")
+    app_name: str = config("APP_NAME", default="NeuroFlow")
     app_version: str = config("APP_VERSION", default="0.1.0")
     debug: bool = config("DEBUG", default=False, cast=bool)
     log_level: str = config("LOG_LEVEL", default="INFO")

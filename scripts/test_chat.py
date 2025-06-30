@@ -190,7 +190,7 @@ async def main():
     
     tester = ChatTester(args.url, args.api_key)
     
-    print("🚀 AI Memory Service - Teste de Chat")
+    print("🚀 NeuroFlow - Teste de Chat")
     print("=" * 50)
     print(f"🌐 URL: {args.url}")
     print(f"🔑 API Key: {args.api_key[:20]}...")

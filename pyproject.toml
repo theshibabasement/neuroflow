@@ -1,9 +1,21 @@
 [tool.poetry]
-name = "ai-memory-service"
+name = "neuroflow"
 version = "0.1.0"
-description = "Microserviço intermediário entre API Gateway e Flowise com memória robusta usando Graphiti"
-authors = ["Your Name <your.email@example.com>"]
+description = "🧠 NeuroFlow - Microserviço inteligente com memória de grafos para potencializar agentes de IA"
+authors = ["João Santos <limemarketingbr@gmail.com>"]
+license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/theshibabasement/neuroflow"
+repository = "https://github.com/theshibabasement/neuroflow"
+keywords = ["ai", "memory", "graphiti", "flowise", "microservice", "chatbot"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers", 
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"

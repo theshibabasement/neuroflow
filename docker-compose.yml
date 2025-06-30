@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  # Aplicação principal
-  ai-memory-service:
+  # NeuroFlow - Aplicação principal
+  neuroflow:
     build: .
     ports:
       - "${PORT:-8000}:8000"
@@ -35,10 +35,10 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ai-memory.rule=Host(`${DOMAIN:-localhost}`)"
-      - "traefik.http.routers.ai-memory.entrypoints=websecure"
-      - "traefik.http.routers.ai-memory.tls.certresolver=myresolver"
-      - "traefik.http.services.ai-memory.loadbalancer.server.port=8000"
+      - "traefik.http.routers.neuroflow.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.neuroflow.entrypoints=websecure"
+      - "traefik.http.routers.neuroflow.tls.certresolver=myresolver"
+      - "traefik.http.services.neuroflow.loadbalancer.server.port=8000"
 
   # Worker Celery
   celery-worker:

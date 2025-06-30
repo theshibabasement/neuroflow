@@ -1,6 +1,8 @@
-# AI Memory Service
+# 🧠 NeuroFlow
 
-Microserviço intermediário entre API Gateway e Flowise com memória robusta usando Graphiti.
+**Microserviço inteligente com memória de grafos para potencializar agentes de IA**
+
+*Desenvolvido por [João Santos](mailto:limemarketingbr@gmail.com)*
 
 ## 📋 Visão Geral
 
@@ -16,7 +18,7 @@ Este serviço atua como uma camada intermediária entre seu API Gateway (Gravite
 ## 🏗️ Arquitetura
 
 ```
-Frontend → Gravitee → AI Memory Service → Flowise
+Frontend → Gravitee → NeuroFlow → Flowise
                             ↓
                       Graphiti (Neo4j)
                             ↓
@@ -52,8 +54,8 @@ Frontend → Gravitee → AI Memory Service → Flowise
 
 1. **Clone o repositório:**
    ```bash
-   git clone <repository-url>
-   cd ai-memory-service
+   git clone https://github.com/theshibabasement/neuroflow.git
+   cd neuroflow
    ```
 
 2. **Configure as variáveis de ambiente:**
@@ -251,7 +253,7 @@ Os logs são estruturados em JSON e salvos em `./logs/`:
 
 ```bash
 # Visualizar logs da aplicação
-docker-compose logs -f ai-memory-service
+docker-compose logs -f neuroflow
 
 # Visualizar logs do worker
 docker-compose logs -f celery-worker
@@ -319,7 +321,7 @@ flake8 app/
    echo $OPENAI_API_KEY
    
    # Verifique os logs
-   docker-compose logs ai-memory-service
+   docker-compose logs neuroflow
    ```
 
 3. **Tasks do Celery não executam:**
@@ -351,7 +353,7 @@ docker-compose up -d
 2. **Configuração de recursos:**
    ```yaml
    # No docker-compose.yml
-   ai-memory-service:
+   neuroflow:
      deploy:
        replicas: 3
        resources:
@@ -370,12 +372,22 @@ docker-compose up -d
 
 ## 📄 Licença
 
-[Incluir informações da licença]
+Este projeto está licenciado sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## 👨‍💻 Autor
+
+**João Santos**  
+📧 Email: [limemarketingbr@gmail.com](mailto:limemarketingbr@gmail.com)  
+🌐 GitHub: [@theshibabasement](https://github.com/theshibabasement)
 
 ## 🆘 Suporte
 
 Para suporte e dúvidas:
 
-- Abra uma issue no GitHub
-- Entre em contato via [email]
-- Consulte a documentação do Graphiti: https://help.getzep.com/graphiti/
+- 🐛 Abra uma [issue no GitHub](https://github.com/theshibabasement/neuroflow/issues)
+- 📧 Entre em contato via [email](mailto:limemarketingbr@gmail.com)
+- 📚 Consulte a documentação do Graphiti: https://help.getzep.com/graphiti/
+
+---
+
+*NeuroFlow é um projeto open-source desenvolvido com ❤️ por João Santos*

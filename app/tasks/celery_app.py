@@ -6,7 +6,7 @@ logger = structlog.get_logger()
 
 # Configuração do Celery
 celery_app = Celery(
-    "ai_memory_service",
+    "neuroflow",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
     include=["app.tasks.memory_tasks"]

@@ -155,7 +155,7 @@ class HealthChecker:
     
     def print_results(self):
         """Imprime os resultados do health check"""
-        print("🏥 AI Memory Service - Health Check")
+        print("🏥 NeuroFlow - Health Check")
         print("=" * 50)
         print(f"⏰ Data/Hora: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"🌐 URL Base: {self.base_url}")
@@ -223,7 +223,7 @@ class HealthChecker:
 async def main():
     import argparse
     
-    parser = argparse.ArgumentParser(description="Health Check do AI Memory Service")
+    parser = argparse.ArgumentParser(description="Health Check do NeuroFlow")
     parser.add_argument("--url", default="http://localhost:8000", help="URL base do serviço")
     parser.add_argument("--api-key", help="API Key para endpoints protegidos")
     parser.add_argument("--json", action="store_true", help="Saída em formato JSON")

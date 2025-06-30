@@ -21,7 +21,7 @@ def generate_admin_api_key(secret_key):
     return hashlib.sha256(f"admin_{secret_key}".encode()).hexdigest()
 
 def main():
-    print("🔐 Gerador de API Keys - AI Memory Service")
+    print("🔐 Gerador de API Keys - NeuroFlow")
     print("=" * 50)
     
     # Verifica se já existe um .env
@@ -88,7 +88,7 @@ def main():
 def create_env_file(secret_key):
     """Cria um arquivo .env básico"""
     env_content = f"""# Configurações da aplicação
-APP_NAME=AI Memory Service
+APP_NAME=NeuroFlow
 APP_VERSION=0.1.0
 DEBUG=true
 LOG_LEVEL=INFO
