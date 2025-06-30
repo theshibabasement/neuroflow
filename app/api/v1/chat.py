@@ -68,19 +68,32 @@ async def chat_prediction(
         if not flowise_response:
             raise HTTPException(status_code=502, detail="Falha na comunicação com o Flowise")
         
-        # 3. Programa atualização da memória em background
+        # 3. Tenta atualizar memória imediatamente (para debug)
+        memory_updated = False
         try:
-            task_id = update_memory_sync(
+            # Para debug, vamos tentar direto sem background task
+            memory_success = await memory_service.add_user_memory(
                 user_id=request.user_id,
-                session_id=request.session_id,
-                company_id=request.company_id,
                 question=request.question,
-                answer=flowise_response.text
+                answer=flowise_response.text,
+                context={"company_id": request.company_id, "session_id": request.session_id}
             )
-            logger.info(f"Memory update task queued: {task_id}")
+            memory_updated = memory_success
+            logger.info(f"Memory update direct: {memory_success}")
         except Exception as e:
-            logger.error(f"Failed to queue memory update: {e}")
-            # Não falha a response, mas loga o erro
+            logger.error(f"Failed to update memory directly: {e}")
+            # Como backup, agenda background task
+            try:
+                task_id = update_memory_sync(
+                    user_id=request.user_id,
+                    session_id=request.session_id,
+                    company_id=request.company_id,
+                    question=request.question,
+                    answer=flowise_response.text
+                )
+                logger.info(f"Memory update task queued as backup: {task_id}")
+            except Exception as backup_error:
+                logger.error(f"Failed to queue backup memory task: {backup_error}")
         
         # 4. Prepara resposta padronizada
         response = ChatResponse(
@@ -90,7 +103,7 @@ async def chat_prediction(
             user_id=request.user_id,
             company_id=request.company_id,
             timestamp=datetime.now(),
-            memory_updated=False  # Será atualizado em background
+            memory_updated=memory_updated
         )
         
         logger.info(f"Chat response sent for execution {flowise_response.executionId}")
@@ -357,6 +370,82 @@ async def test_memory_direct(
     except Exception as e:
         logger.error(f"Debug test failed: {e}")
         raise HTTPException(status_code=500, detail=f"Erro no teste: {str(e)}")
+
+
+@router.post("/debug/init-schema")
+async def init_neo4j_schema(api_key: str = Depends(get_api_key)):
+    """Inicializa schema completo do Neo4j"""
+    try:
+        await memory_service.ensure_initialized()
+        
+        # Cria constraints e índices
+        schema_queries = [
+            # Constraints
+            "CREATE CONSTRAINT user_memory_id IF NOT EXISTS FOR (m:UserMemory) REQUIRE m.id IS UNIQUE",
+            "CREATE CONSTRAINT session_memory_id IF NOT EXISTS FOR (m:SessionMemory) REQUIRE m.id IS UNIQUE", 
+            "CREATE CONSTRAINT company_memory_id IF NOT EXISTS FOR (m:CompanyMemory) REQUIRE m.id IS UNIQUE",
+            "CREATE CONSTRAINT user_entity_id IF NOT EXISTS FOR (e:UserEntity) REQUIRE e.id IS UNIQUE",
+            
+            # Adiciona dados com propriedades completas
+            """
+            MERGE (um:UserMemory:Memory {
+                id: "sample_user_memory",
+                user_id: "sample_user",
+                question: "Exemplo de pergunta",
+                answer: "Exemplo de resposta", 
+                summary: "Resumo exemplo",
+                timestamp: datetime(),
+                embedding: [0.1, 0.2, 0.3, 0.4, 0.5]
+            })
+            """,
+            
+            """
+            MERGE (cm:CompanyMemory:Memory {
+                id: "sample_company_memory",
+                company_id: "sample_company",
+                context: "Contexto da empresa exemplo",
+                description: "Descrição exemplo",
+                timestamp: datetime()
+            })
+            """,
+            
+            """
+            MERGE (ue:UserEntity:Entity {
+                id: "sample_entity",
+                user_id: "sample_user",
+                name: "Entidade Exemplo",
+                type: "example",
+                description: "Entidade de exemplo"
+            })
+            """,
+            
+            # Cria relacionamento
+            """
+            MATCH (ue:UserEntity {id: "sample_entity"})
+            MATCH (um:UserMemory {id: "sample_user_memory"})
+            MERGE (ue)-[:EXTRACTED_ENTITY]->(um)
+            """
+        ]
+        
+        results = []
+        async with memory_service.driver.session() as session:
+            for query in schema_queries:
+                try:
+                    await session.run(query)
+                    results.append(f"✓ Executado: {query[:50]}...")
+                except Exception as e:
+                    results.append(f"✗ Erro: {query[:50]}... | {str(e)}")
+        
+        return {
+            "success": True,
+            "message": "Schema Neo4j inicializado",
+            "results": results,
+            "timestamp": datetime.now()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error initializing schema: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro ao inicializar schema: {str(e)}")
 
 
 @router.get("/health")
